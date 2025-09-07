@@ -1,96 +1,160 @@
-# ALX Polly: A Polling Application
+# ALX Polly
 
-Welcome to ALX Polly, a full-stack polling application built with Next.js, TypeScript, and Supabase. This project serves as a practical learning ground for modern web development concepts, with a special focus on identifying and fixing common security vulnerabilities.
+A modern polling app built with Next.js App Router, TypeScript, and Supabase. Users can register, create polls, and share them for others to vote. The project also demonstrates secure patterns to prevent duplicate votes, unauthorized access, and input tampering.
 
-## About the Application
+## Tech Stack
+- Framework: Next.js (App Router)
+- Language: TypeScript
+- Auth/DB: Supabase (Postgres + RLS)
+- UI: Tailwind CSS + shadcn/ui
+- State: Server Components first; Client Components for interactivity
 
-ALX Polly allows authenticated users to create, share, and vote on polls. It's a simple yet powerful application that demonstrates key features of modern web development:
-
--   **Authentication**: Secure user sign-up and login.
--   **Poll Management**: Users can create, view, and delete their own polls.
--   **Voting System**: A straightforward system for casting and viewing votes.
--   **User Dashboard**: A personalized space for users to manage their polls.
-
-The application is built with a modern tech stack:
-
--   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **Backend & Database**: [Supabase](https://supabase.io/)
--   **UI**: [Tailwind CSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/)
--   **State Management**: React Server Components and Client Components
+## Project Overview
+- Auth: Email/password login and registration via Supabase Auth.
+- Polls: Create, edit, list, and delete polls you own.
+- Voting: Server Action validates option index, requires auth, and blocks duplicates.
+- Dashboard: See your polls at /polls, with quick edit/delete actions.
 
 ---
 
-## 🚀 The Challenge: Security Audit & Remediation
+## Setup
 
-As a developer, writing functional code is only half the battle. Ensuring that the code is secure, robust, and free of vulnerabilities is just as critical. This version of ALX Polly has been intentionally built with several security flaws, providing a real-world scenario for you to practice your security auditing skills.
+### 1) Prerequisites
+- Node.js 20+
+- npm
+- Supabase project (URL + anon key)
 
-**Your mission is to act as a security engineer tasked with auditing this codebase.**
+### 2) Environment variables
+Create a `.env.local` file in the project root with:
 
-### Your Objectives:
-
-1.  **Identify Vulnerabilities**:
-    -   Thoroughly review the codebase to find security weaknesses.
-    -   Pay close attention to user authentication, data access, and business logic.
-    -   Think about how a malicious actor could misuse the application's features.
-
-2.  **Understand the Impact**:
-    -   For each vulnerability you find, determine the potential impact.Query your AI assistant about it. What data could be exposed? What unauthorized actions could be performed?
-
-3.  **Propose and Implement Fixes**:
-    -   Once a vulnerability is identified, ask your AI assistant to fix it.
-    -   Write secure, efficient, and clean code to patch the security holes.
-    -   Ensure that your fixes do not break existing functionality for legitimate users.
-
-### Where to Start?
-
-A good security audit involves both static code analysis and dynamic testing. Here’s a suggested approach:
-
-1.  **Familiarize Yourself with the Code**:
-    -   Start with `app/lib/actions/` to understand how the application interacts with the database.
-    -   Explore the page routes in the `app/(dashboard)/` directory. How is data displayed and managed?
-    -   Look for hidden or undocumented features. Are there any pages not linked in the main UI?
-
-2.  **Use Your AI Assistant**:
-    -   This is an open-book test. You are encouraged to use AI tools to help you.
-    -   Ask your AI assistant to review snippets of code for security issues.
-    -   Describe a feature's behavior to your AI and ask it to identify potential attack vectors.
-    -   When you find a vulnerability, ask your AI for the best way to patch it.
-
----
-
-## Getting Started
-
-To begin your security audit, you'll need to get the application running on your local machine.
-
-### 1. Prerequisites
-
--   [Node.js](https://nodejs.org/) (v20.x or higher recommended)
--   [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
--   A [Supabase](https://supabase.io/) account (the project is pre-configured, but you may need your own for a clean slate).
-
-### 2. Installation
-
-Clone the repository and install the dependencies:
-
-```bash
-git clone <repository-url>
-cd alx-polly
-npm install
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 3. Environment Variables
+### 3) Database schema (run in Supabase SQL editor)
+Create tables, indexes, and RLS policies:
 
-The project uses Supabase for its backend. An environment file `.env.local` is needed.Use the keys you created during the Supabase setup process.
+```sql
+-- Polls
+create table if not exists public.polls (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  question text not null,
+  options text[] not null,
+  created_at timestamptz not null default now()
+);
 
-### 4. Running the Development Server
+-- Votes
+create table if not exists public.votes (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references public.polls(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  option_index int not null,
+  created_at timestamptz not null default now(),
+  constraint votes_option_index_nonneg check (option_index >= 0)
+);
 
-Start the application in development mode:
+-- Prevent duplicate votes per user per poll
+create unique index if not exists votes_unique_user_per_poll
+  on public.votes (poll_id, user_id);
+
+-- Enable RLS
+alter table public.polls enable row level security;
+alter table public.votes enable row level security;
+
+-- Policies: polls (owner can manage, anyone can read their own list via app logic)
+drop policy if exists insert_own_poll on public.polls;
+create policy insert_own_poll on public.polls
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists update_own_poll on public.polls;
+create policy update_own_poll on public.polls
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists delete_own_poll on public.polls;
+create policy delete_own_poll on public.polls
+  for delete using (auth.uid() = user_id);
+
+-- Policies: votes
+drop policy if exists insert_own_vote on public.votes;
+create policy insert_own_vote on public.votes
+  for insert with check (
+    auth.uid() = user_id and exists (select 1 from public.polls p where p.id = poll_id)
+  );
+
+drop policy if exists read_votes on public.votes;
+create policy read_votes on public.votes for select using (true);
+```
+
+---
+
+## Running locally
+
+Install and start the dev server:
 
 ```bash
+npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`.
+- App: http://localhost:3000
+- Common tasks:
+  - Lint: `npm run lint`
+  - Typecheck: `npm run tsc`
+  - Build: `npm run build`
+  - Start prod build: `npm run start`
 
-Good luck, engineer! This is your chance to step into the shoes of a security professional and make a real impact on the quality and safety of this application. Happy hunting!
+Troubleshooting:
+- If you see chunk load or build cache errors, stop the server, delete the `.next` folder, and re-run `npm run dev`.
+
+---
+
+## Usage examples
+
+### Register and Login
+- Go to `/register` to create an account (name, email, password).
+- Go to `/login` to sign in.
+
+### Create a poll
+- Navigate to `/create`.
+- Enter a question and at least two options.
+- Submit; you’ll be redirected to `/polls`.
+
+### Manage your polls
+- On `/polls`, each poll shows actions:
+  - View details (route may vary by implementation)
+  - Edit question/options
+  - Delete (owner-only)
+
+### Vote on a poll
+- From a poll’s detail page, select an option and submit.
+- Server-side checks:
+  - Auth required
+  - Option index must be valid
+  - One vote per user per poll (enforced in code and DB)
+
+---
+
+## Testing the app
+- Manual: Use the UI flows above for create/edit/delete/vote.
+- Programmatic checks:
+  - Ensure duplicate voting returns an error.
+  - Ensure unauthenticated users are blocked from voting/creating.
+- CI ideas (not included): add unit tests for server actions, e2e for main flows.
+
+---
+
+## Security hardening highlights
+- Server Actions validate inputs and auth server-side.
+- DB-level protections: unique index on `(poll_id, user_id)`, RLS policies, and a CHECK on `option_index`.
+- Auth state bridged via middleware; secrets loaded from env only.
+
+---
+
+## Scripts
+- `npm run dev` – start dev server
+- `npm run build` – build
+- `npm run start` – run production build
+- `npm run lint` – lint
+- `npm run tsc` – typecheck
