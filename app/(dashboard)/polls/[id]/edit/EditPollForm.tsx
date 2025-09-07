@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+/**
+ * EditPollForm
+ * - Client component for editing an existing poll's question/options.
+ * - Normalizes formData before calling `updatePoll` server action.
+ */
 export default function EditPollForm({ poll }: { poll: any }) {
   const [question, setQuestion] = useState(poll.question);
   const [options, setOptions] = useState<string[]>(poll.options || []);
@@ -23,6 +28,7 @@ export default function EditPollForm({ poll }: { poll: any }) {
     }
   };
 
+  // Submit updates via server action; we rewrite formData to include current state
   return (
     <form
       action={async (formData) => {

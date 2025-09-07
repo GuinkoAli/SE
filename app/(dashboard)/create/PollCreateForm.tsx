@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/**
+ * PollCreateForm
+ * - Client component to build a poll and submit to the `createPoll` server action.
+ * - Manages dynamic option fields locally; server validates and persists.
+ */
 export default function PollCreateForm() {
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +27,7 @@ export default function PollCreateForm() {
     }
   };
 
+  // Render the create form; the `action` posts directly to the server action
   return (
     <form
       action={async (formData) => {
@@ -69,4 +75,4 @@ export default function PollCreateForm() {
       <Button type="submit">Create Poll</Button>
     </form>
   );
-} 
+}

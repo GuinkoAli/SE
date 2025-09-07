@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getUserPolls } from '@/app/lib/actions/poll-actions';
-import PollActions from './PollActions'; 
+import PollActions from './PollActions';
 
+/**
+ * Server component: lists the authenticated user's polls using `getUserPolls`.
+ * Renders each poll via the PollActions card component.
+ */
 export default async function PollsPage() {
   const { polls, error } = await getUserPolls();
 

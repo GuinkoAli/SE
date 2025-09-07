@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation';
 // Import the client component
 import EditPollForm from './EditPollForm';
 
+/**
+ * Server component: loads poll by id then renders the client-side EditPollForm.
+ */
 export default async function EditPollPage({ params }: { params: { id: string } }) {
   const { poll, error } = await getPollById(params.id);
 

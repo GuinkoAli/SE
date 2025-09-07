@@ -8,6 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { register } from '@/app/lib/actions/auth-actions';
 
+/**
+ * RegisterPage signs up a new user and stores their name in user_metadata.
+ * - If email confirmation is enabled, the session may not be immediately active.
+ * - We still attempt a full reload to pick up any established session.
+ */
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +39,8 @@ export default function RegisterPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      window.location.href = '/polls'; // Full reload to pick up session
+      // Full reload to ensure new session is reflected globally
+      window.location.href = '/polls';
     }
   };
 

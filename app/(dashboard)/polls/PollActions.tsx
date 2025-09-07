@@ -16,8 +16,14 @@ interface PollActionsProps {
   poll: Poll;
 }
 
+/**
+ * PollActions
+ * - Displays a single poll in the dashboard grid.
+ * - Shows Edit/Delete controls only to the owner (client-side check).
+ */
 export default function PollActions({ poll }: PollActionsProps) {
   const { user } = useAuth();
+  // Delete via server action; the page will reload after deletion
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this poll?")) {
       await deletePoll(poll.id);

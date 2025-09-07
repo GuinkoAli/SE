@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { login } from '@/app/lib/actions/auth-actions';
 
+/**
+ * LoginPage renders a credential form and calls the server action `login`.
+ * - On success, we force a full navigation to ensure fresh cookies/session.
+ */
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +31,8 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      window.location.href = '/polls'; // Full reload to pick up session
+      // Full reload to ensure the app picks up the new auth session everywhere
+      window.location.href = '/polls';
     }
   };
 

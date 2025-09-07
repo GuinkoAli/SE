@@ -4,6 +4,11 @@ import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/lib/context/auth-context';
 
+/**
+ * Public-only layout for auth routes (/login, /register).
+ * - If a user is already authenticated, redirect them to /polls.
+ * - Shows a minimal branded shell while guarding children.
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -15,11 +20,11 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   }, [user, loading, router]);
 
   if (loading) {
-    return <div>Loading...</div>; // Or a loading spinner
+    return <div>Loading...</div>;
   }
 
   if (user) {
-    return null; // Should already be redirected by useEffect
+    return null;
   }
 
   return (

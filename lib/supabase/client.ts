@@ -1,5 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+/**
+ * Create a Supabase client for the browser.
+ * - Uses public URL and anon key from env.
+ * - Persists auth using cookies; RLS is enforced server-side.
+ * - Intended for client components to read auth state and perform non-sensitive operations.
+ */
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -20,6 +20,11 @@ interface Poll {
   options: string[];
 }
 
+/**
+ * AdminPage
+ * - Client-only view to enumerate all polls (example admin panel).
+ * - Uses browser Supabase client to query and delete polls.
+ */
 export default function AdminPage() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +34,7 @@ export default function AdminPage() {
     fetchAllPolls();
   }, []);
 
+  // Fetch all polls (admin capability); in production, protect this route
   const fetchAllPolls = async () => {
     const supabase = createClient();
 
